@@ -86,9 +86,9 @@ const RESOURCE_COLORS = [
 
 const OFF_SUB_TYPES = [
   { id: "off",     label: "Off",            color: "#6B7280" },
-  { id: "absent",  label: "Absent",         color: "#EF4444" },
-  { id: "public",  label: "Public Holiday", color: "#F59E0B" },
-  { id: "mc",      label: "MC",             color: "#8B5CF6" },
+  { id: "absent",  label: "Absent",         color: "#6B7280" },
+  { id: "public",  label: "Public Holiday", color: "#6B7280" },
+  { id: "mc",      label: "MC",             color: "#6B7280" },
 ] as const
 type OffSubTypeId = typeof OFF_SUB_TYPES[number]["id"]
 type ShiftTypeId = "route" | "off"
@@ -359,6 +359,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
     selectedResourceId?: string
   }>({ open: false })
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false)
+  const [deleteShiftConfirmOpen, setDeleteShiftConfirmOpen] = useState(false)
   const [deleteStaffConfirmDialog, setDeleteStaffConfirmDialog] = useState<{
     open: boolean
     resourceId?: string
@@ -468,6 +469,12 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
     color: "#3B82F6",
   })
 
+  const isManageShiftReady = useMemo(() => {
+    if (!shiftForm.resourceId || !shiftForm.date) return false
+    if (shiftType === "route") return shiftForm.title.trim().length > 0
+    return true
+  }, [shiftForm, shiftType, offSubType])
+
   // Resource form state
   const [resForm, setResForm] = useState({
     name: "",
@@ -536,7 +543,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
     const detected = detectShiftType(shift.title)
     setShiftType(detected)
     setOffSubType(detected === "off" ? detectOffSubType(shift.title) : "off")
-    setDialogTimeEnabled(detected === "route")
+    setDialogTimeEnabled(false)
     setEndDateMode("date")
     setShiftEndDate(shift.date)
     setShiftDurationDays("1")
@@ -903,7 +910,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
             </colgroup>
             <thead>
               <tr>
-                <th className="sticky top-0 left-0 z-30 border-b border-r border-border bg-card px-2 py-2 text-center" style={{ width: `${staffColWidth}px`, minWidth: `${staffColWidth}px` }}>
+                <th className="sticky top-0 left-0 z-30 border-b border-l border-r border-border bg-card px-2 py-2 text-center" style={{ width: `${staffColWidth}px`, minWidth: `${staffColWidth}px` }}>
                   <span className="flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-foreground/80">
                     <Users className="size-3" />Staff
                   </span>
@@ -937,23 +944,16 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
             <tbody>
               {resources.map((resource, ri) => {
                 const rowShifts = shifts.filter(s => s.resourceId === resource.id)
-                const viewShiftCount = colDates.reduce((acc, d) =>
-                  acc + rowShifts.filter(s => s.date === toDateKey(d)).length, 0)
                 return (
                   <tr key={resource.id} className={ri % 2 !== 0 ? "bg-muted/[0.025]" : ""}>
 
                     {/* ── Staff cell ── */}
-                    <td className="sticky left-0 z-10 border-b border-r border-border bg-card p-2 align-top">
+                    <td className="sticky left-0 z-10 border-b border-l border-r border-border bg-card p-2 align-top">
                       <div className="flex flex-col items-center text-center">
                           <p className="text-xs font-semibold text-foreground leading-tight whitespace-nowrap">{resource.name}</p>
                           {resource.role && (
                             <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 whitespace-nowrap">{resource.role}</p>
                           )}
-                          <span
-                            className="inline-block mt-1.5 rounded-md border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-foreground/80"
-                          >
-                            {viewShiftCount} shift{viewShiftCount !== 1 ? "s" : ""}
-                          </span>
                       </div>
                       {isEditMode && (
                         <div className="flex items-center gap-0.5 mt-2.5">
@@ -1079,7 +1079,6 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                           const isTodaySpan = colDates
                             .slice(startIndex, startIndex + span)
                             .some(d => isSameDay(d, today))
-                          const mergedShift = orderedShifts.length === 1 ? orderedShifts[0] : null
 
                           return (
                             <td
@@ -1103,11 +1102,6 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                                     onToggleSelect={() => toggleShiftSelection(shift.id)}
                                   />
                                 ))}
-                                {mergedShift && span > 1 && (
-                                  <div className="px-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/80">
-                                    {span} days merged
-                                  </div>
-                                )}
                               </div>
                             </td>
                           )
@@ -1201,7 +1195,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                             setShiftForm(p => ({ ...p, title: "", color: "#3B82F6" }))
                           }
                         }}
-                        className={`py-1.5 rounded-lg text-[12px] font-semibold border transition-all ${
+                        className={`py-1 rounded-lg text-[11px] font-semibold border transition-all ${
                           shiftType === tid
                             ? "bg-primary text-primary-foreground border-primary"
                             : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -1285,7 +1279,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                     <button
                       type="button"
                       onClick={() => setEndDateMode("date")}
-                      className={`flex-1 h-8 text-xs font-medium transition-colors ${
+                      className={`flex-1 h-7 text-[10px] font-medium transition-colors ${
                         endDateMode === "date"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -1296,7 +1290,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                     <button
                       type="button"
                       onClick={() => setEndDateMode("duration")}
-                      className={`flex-1 h-8 text-xs font-medium transition-colors ${
+                      className={`flex-1 h-7 text-[10px] font-medium transition-colors ${
                         endDateMode === "duration"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -1383,45 +1377,47 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                   </div>
                 )}
                 <div className="flex justify-end pt-1">
-                  <Button size="sm" onClick={async () => {
-                    if (!shiftForm.resourceId) { toast.error("Please select staff"); return }
-                    if (!shiftForm.date) { toast.error("Please pick a date"); return }
-                    const finalTitle = shiftType === "off"
-                      ? (OFF_SUB_TYPES.find(t => t.id === offSubType)?.label ?? "Off")
-                      : shiftForm.title.trim()
-                    const finalColor = shiftType === "off"
-                      ? (OFF_SUB_TYPES.find(t => t.id === offSubType)?.color ?? "#6B7280")
-                      : shiftForm.color
-                    if (shiftType === "route" && !finalTitle) { toast.error("Please select a route"); return }
-                    if (shiftType === "route" && manageTimeEnabled && shiftForm.endHour <= shiftForm.startHour) { toast.error("End time must be after start time"); return }
-                    const durationNum = Number(shiftDurationDays)
-                    const resolvedEndDate = Number.isFinite(durationNum) && durationNum > 0
-                      ? addDaysToDateKey(shiftForm.date, Math.floor(durationNum) - 1)
-                      : shiftEndDate
-                    const dateKeys = getDateKeysInRange(shiftForm.date, resolvedEndDate)
-                    const blockedDate = dateKeys.find(dateKey =>
-                      shifts.filter(s => s.resourceId === shiftForm.resourceId && s.date === dateKey).length >= 2
-                    )
-                    if (blockedDate) { toast.error(`Maximum 2 shifts reached on ${blockedDate}`); return }
+                  {isManageShiftReady && (
+                    <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={async () => {
+                      if (!shiftForm.resourceId) { toast.error("Please select staff"); return }
+                      if (!shiftForm.date) { toast.error("Please pick a date"); return }
+                      const finalTitle = shiftType === "off"
+                        ? (OFF_SUB_TYPES.find(t => t.id === offSubType)?.label ?? "Off")
+                        : shiftForm.title.trim()
+                      const finalColor = shiftType === "off"
+                        ? (OFF_SUB_TYPES.find(t => t.id === offSubType)?.color ?? "#6B7280")
+                        : shiftForm.color
+                      if (shiftType === "route" && !finalTitle) { toast.error("Please select a route"); return }
+                      if (shiftType === "route" && manageTimeEnabled && shiftForm.endHour <= shiftForm.startHour) { toast.error("End time must be after start time"); return }
+                      const durationNum = Number(shiftDurationDays)
+                      const resolvedEndDate = Number.isFinite(durationNum) && durationNum > 0
+                        ? addDaysToDateKey(shiftForm.date, Math.floor(durationNum) - 1)
+                        : shiftEndDate
+                      const dateKeys = getDateKeysInRange(shiftForm.date, resolvedEndDate)
+                      const blockedDate = dateKeys.find(dateKey =>
+                        shifts.filter(s => s.resourceId === shiftForm.resourceId && s.date === dateKey).length >= 2
+                      )
+                      if (blockedDate) { toast.error(`Maximum 2 shifts reached on ${blockedDate}`); return }
 
-                    const batchId = Date.now()
-                    const newShifts: Shift[] = dateKeys.map((dateKey, idx) => ({
-                      id: `s${batchId}_${idx}`,
-                      ...shiftForm,
-                      date: dateKey,
-                      title: finalTitle,
-                      color: finalColor,
-                    }))
+                      const batchId = Date.now()
+                      const newShifts: Shift[] = dateKeys.map((dateKey, idx) => ({
+                        id: `s${batchId}_${idx}`,
+                        ...shiftForm,
+                        date: dateKey,
+                        title: finalTitle,
+                        color: finalColor,
+                      }))
 
-                    const results = await Promise.all(newShifts.map(s => apiSaveShift(s)))
-                    if (results.every(Boolean)) {
-                      setShifts(prev => [...prev, ...newShifts])
-                      if (shiftType === "route") {
-                        setShiftForm(p => ({ ...p, title: "" }))
-                      }
-                      toast.success(newShifts.length > 1 ? `${newShifts.length} shifts added` : "Shift added")
-                    } else toast.error("Failed to save shift")
-                  }}><Plus className="size-3.5 mr-1" />Add Shift</Button>
+                      const results = await Promise.all(newShifts.map(s => apiSaveShift(s)))
+                      if (results.every(Boolean)) {
+                        setShifts(prev => [...prev, ...newShifts])
+                        if (shiftType === "route") {
+                          setShiftForm(p => ({ ...p, title: "" }))
+                        }
+                        toast.success(newShifts.length > 1 ? `${newShifts.length} shifts added` : "Shift added")
+                      } else toast.error("Failed to save shift")
+                    }}><Plus className="size-3.5 mr-1" />Add Shift</Button>
+                  )}
                 </div>
               </>
             )}
@@ -1463,7 +1459,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                         setShiftForm(p => ({ ...p, title: "", color: "#3B82F6" }))
                       }
                     }}
-                    className={`py-1.5 rounded-lg text-[12px] font-semibold border transition-all ${
+                    className={`py-1 rounded-lg text-[11px] font-semibold border transition-all ${
                       shiftType === tid
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -1477,7 +1473,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
 
             {/* ── Route dropdown grouped by AM/PM ── */}
             {shiftType === "route" && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">Route</label>
                 <select
                   value={shiftForm.title}
@@ -1491,48 +1487,12 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                     const effectiveColor = routeEffectiveColorMap.get(selected.name) ?? "#3B82F6"
                     setShiftForm(p => ({ ...p, title: selected.name, color: effectiveColor, ...preset }))
                   }}
-                  className="h-10 w-full rounded-xl border border-border/70 bg-gradient-to-b from-background to-muted/20 px-3 text-[12px] font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-[11px] md:text-[11px] focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">Select route</option>
-                  {routes.filter(r => r.shift?.toUpperCase() === "AM").length > 0 && (
-                    <optgroup label="AM">
-                      {routes
-                        .filter(r => r.shift?.toUpperCase() === "AM")
-                        .map(r => (
-                          <option key={r.id} value={r.name}>
-                            {r.name}{r.code ? ` (${r.code})` : ""}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                  {routes.filter(r => r.shift?.toUpperCase() === "PM").length > 0 && (
-                    <optgroup label="PM">
-                      {routes
-                        .filter(r => r.shift?.toUpperCase() === "PM")
-                        .map(r => (
-                          <option key={r.id} value={r.name}>
-                            {r.name}{r.code ? ` (${r.code})` : ""}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                  {routes.filter(r => {
-                    const shiftLabel = r.shift?.toUpperCase()
-                    return shiftLabel !== "AM" && shiftLabel !== "PM"
-                  }).length > 0 && (
-                    <optgroup label="Other">
-                      {routes
-                        .filter(r => {
-                          const shiftLabel = r.shift?.toUpperCase()
-                          return shiftLabel !== "AM" && shiftLabel !== "PM"
-                        })
-                        .map(r => (
-                          <option key={r.id} value={r.name}>
-                            {r.name}{r.code ? ` (${r.code})` : ""}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
+                  <option value="">-- Select Route --</option>
+                  {routes.map(r => (
+                    <option key={r.id} value={r.name}>{r.name}{r.code ? ` (${r.code})` : ""} — {r.shift}</option>
+                  ))}
                 </select>
               </div>
             )}
@@ -1549,7 +1509,7 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                     setOffSubType(selected.id as OffSubTypeId)
                     setShiftForm(p => ({ ...p, title: selected.label, color: selected.color }))
                   }}
-                  className="h-10 w-full rounded-xl border border-border/70 bg-gradient-to-b from-background to-muted/20 px-3 text-[12px] font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-[11px] md:text-[11px] focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   {OFF_SUB_TYPES.map(st => (
                     <option key={st.id} value={st.id}>{st.label}</option>
@@ -1588,9 +1548,33 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">End Date</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">End Date</label>
+              <div className="flex border border-border rounded-md overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setEndDateMode("date")}
+                  className={`flex-1 h-7 text-[10px] font-medium transition-colors ${
+                    endDateMode === "date"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  Pick Date
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEndDateMode("duration")}
+                  className={`flex-1 h-7 text-[10px] font-medium transition-colors ${
+                    endDateMode === "duration"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  Set Duration
+                </button>
+              </div>
+              {endDateMode === "date" ? (
                 <input
                   type="date"
                   value={shiftEndDate}
@@ -1602,26 +1586,38 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
                   }}
                   className="h-9 rounded-md border border-input bg-background px-3 text-[11px] md:text-[11px] focus:outline-none focus:ring-2 focus:ring-ring [color-scheme:light] dark:[color-scheme:dark]"
                 />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">Duration (days)</label>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={shiftDurationDays}
-                  onChange={e => {
-                    const next = e.target.value
-                    setShiftDurationDays(next)
-                    const durationNum = Number(next)
-                    if (Number.isFinite(durationNum) && durationNum > 0) {
-                      setShiftEndDate(addDaysToDateKey(shiftForm.date, Math.floor(durationNum) - 1))
-                    }
-                  }}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-[11px] md:text-[11px] focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="e.g. 5"
-                />
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium">End Date</label>
+                    <input
+                      type="date"
+                      value={shiftEndDate}
+                      readOnly
+                      className="h-9 rounded-md border border-input bg-muted/50 px-3 text-[11px] md:text-[11px] cursor-not-allowed [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium">Duration (days)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={shiftDurationDays}
+                      onChange={e => {
+                        const next = e.target.value
+                        setShiftDurationDays(next)
+                        const durationNum = Number(next)
+                        if (Number.isFinite(durationNum) && durationNum > 0) {
+                          setShiftEndDate(addDaysToDateKey(shiftForm.date, Math.floor(durationNum) - 1))
+                        }
+                      }}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-[11px] md:text-[11px] focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="e.g. 5"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Time — only for Route ── */}
@@ -1663,20 +1659,69 @@ export function Rooster({ viewMode: viewModeProp = "week" }: { viewMode?: ViewMo
           <div className="px-5 py-3 flex items-center justify-between gap-2">
             <div>
               {shiftDialog.mode === "edit" && shiftDialog.shift && (
-                <Button variant="destructive" size="sm" onClick={async () => { await deleteShift(shiftDialog.shift!.id); setShiftDialog({ open: false, mode: "add" }) }} className="gap-1.5">
+                <Button variant="destructive" size="sm" onClick={() => setDeleteShiftConfirmOpen(true)} className="gap-1.5">
                   <Trash2 className="size-3.5" />Delete
                 </Button>
               )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setShiftDialog(p => ({ ...p, open: false }))}>Cancel</Button>
-              <Button size="sm" onClick={saveShift}>{shiftDialog.mode === "add" ? "Add Shift" : "Save"}</Button>
+              <Button
+                size="sm"
+                className={shiftDialog.mode === "add" ? "bg-emerald-600 text-white hover:bg-emerald-700" : undefined}
+                onClick={saveShift}
+              >
+                {shiftDialog.mode === "add" ? "Add Shift" : "Save"}
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* ── Resource Dialog ──────────────────────────────────────────────────── */}
+      <Dialog open={deleteShiftConfirmOpen} onOpenChange={setDeleteShiftConfirmOpen}>
+        <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0" onOpenAutoFocus={e => e.preventDefault()}>
+          <DialogHeader className="px-5 pt-5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center justify-center p-2 bg-red-500/10 rounded-lg text-red-500">
+                <Trash2 className="size-5" />
+              </div>
+              <DialogTitle className="text-base font-semibold tracking-tight">
+                Delete Shift
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <Separator />
+          <div className="px-5 py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this shift?
+              {shiftDialog.shift && (
+                <><br /><strong>{shiftDialog.shift.title}</strong> on <strong>{shiftDialog.shift.date}</strong></>
+              )}
+            </p>
+          </div>
+          <Separator />
+          <div className="px-5 py-3 flex items-center justify-between gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDeleteShiftConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                if (shiftDialog.shift) {
+                  await deleteShift(shiftDialog.shift.id)
+                }
+                setDeleteShiftConfirmOpen(false)
+                setShiftDialog({ open: false, mode: "add" })
+              }}
+            >
+              Delete Shift
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={resourceDialog.open} onOpenChange={o => !o && setResourceDialog(p => ({ ...p, open: false }))}>
         <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden gap-0" onOpenAutoFocus={e => e.preventDefault()}>
           <DialogHeader className="px-5 pt-5 pb-4">
