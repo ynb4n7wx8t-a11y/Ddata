@@ -2,7 +2,6 @@ import { useState, useEffect, lazy, Suspense, Component, type ErrorInfo, type Re
 import { createPortal } from "react-dom"
 import { AppSidebar } from "@/components/app-sidebar"
 import { addToRecent } from "@/components/NavRecent"
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt"
 import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt"
 import { LandingPage } from "@/components/LandingPage"
 import { DeliveryMap } from "@/components/DeliveryMap"
@@ -1935,7 +1934,6 @@ export function App() {
             </SidebarProvider>
           </div>
         )}
-        <PWAInstallPrompt />
         <PWAUpdatePrompt />
         <Toaster
           position="top-right"

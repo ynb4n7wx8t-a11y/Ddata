@@ -2278,7 +2278,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
         <button
           type="button"
           aria-label="Close popover"
-          className="fixed inset-0 z-40 bg-background/50 backdrop-blur-[2px]"
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-[2px]"
           onClick={() => setBadgePopover(null)}
         />
       )}
@@ -2747,11 +2747,11 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                             return (
                               <Popover key={type} open={isOpen} onOpenChange={open => setBadgePopover(open ? popKey : null)}>
                                 <PopoverTrigger asChild>
-                                  <span onClick={() => setBadgePopover(isOpen ? null : popKey)} style={{ display: 'inline-flex', alignItems: 'center', fontSize: badgeFs, fontWeight: 700, color: badgeTextColor, background: badgeBackground, padding: '4px 11px', borderRadius: '5px', border: `1px solid ${badgeBorder}`, boxShadow: `0 2px 8px ${markerColor}35, 0 1px 0 #ffffff1f inset`, flexShrink: 0, letterSpacing: '0.03em', textShadow: badgeTextShadow, cursor: 'pointer', opacity: isOpen ? 0.75 : 1, transition: 'opacity 0.15s' }}>
+                                  <span onClick={() => setBadgePopover(isOpen ? null : popKey)} style={{ display: 'inline-flex', alignItems: 'center', fontSize: badgeFs, fontWeight: 700, color: badgeTextColor, background: badgeBackground, padding: '4px 11px', borderRadius: '8px', border: `1px solid ${badgeBorder}`, boxShadow: `0 4px 16px ${markerColor}30, 0 1px 0 #ffffff1f inset`, flexShrink: 0, letterSpacing: '0.03em', textShadow: badgeTextShadow, cursor: 'pointer', opacity: isOpen ? 0.75 : 1, transition: 'opacity 0.15s, transform 0.15s' }}>
                                     {getDeliveryLabel(type)}&nbsp;<span style={{ opacity: 0.5, fontWeight: 500 }}>&bull;</span>&nbsp;<span style={{ color: badgeCountColor, fontWeight: 700 }}>{pts.length}</span>
                                   </span>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-64 p-0 z-50 backdrop-blur-xl bg-background/90 dark:bg-card/90 border border-border/60 shadow-2xl rounded-2xl overflow-hidden" align="center" side="top">
+                                <PopoverContent className="w-64 p-0 z-50 backdrop-blur-xl bg-background/90 dark:bg-card/90 shadow-2xl rounded-xl overflow-hidden" style={{ border: `1px solid ${cardBorderColor}` }} align="center" side="top">
                                   {/* Header */}
                                   <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/60" style={{ background: `${markerColor}14` }}>
                                     <span className="size-2.5 rounded-full shrink-0" style={{ background: markerColor }} />

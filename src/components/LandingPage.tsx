@@ -84,14 +84,9 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           size="sm"
           variant="ghost"
-          className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.94] ${
-            isDark
-              ? "bg-[hsl(var(--secondary)/0.7)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--secondary)/0.9)] hover:text-[hsl(var(--foreground))]"
-              : "bg-[hsl(var(--card)/0.8)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--card))] hover:text-[hsl(var(--foreground))]"
-          }`}
+          className="p-2 hover:opacity-80 transition-opacity active:scale-[0.94]"
         >
-          {isDark ? <Sun className="size-3.5 text-amber-400" /> : <Moon className="size-3.5 text-indigo-400" />}
-          {isDark ? "Light" : "Dark"}
+          {isDark ? <Sun className="size-5 text-amber-400" /> : <Moon className="size-5 text-blue-900" />}
         </Button>
       </div>
 
