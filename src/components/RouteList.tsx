@@ -2601,7 +2601,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
             : `0 2px 10px ${markerColor}12, 0 0 0 1px ${markerColor}${isDark ? '26' : '1a'}`
           const autoLabels = getAutoDeliveryLabelsFromRoute(route)
           const savedCustomLabels = toCustomLabels(route.labels)
-          const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color || markerColor, labels: savedCustomLabels }
+          const ep = editPanelState[route.id] ?? { name: route.name, code: route.code, shift: route.shift, color: route.color ?? '', labels: savedCustomLabels }
           return (
           <div
             key={route.id}
@@ -3052,6 +3052,27 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                         </div>
                       </div>
                     </div>
+                    <div style={{ background: 'hsl(var(--background)/0.7)', border: '1px solid hsl(var(--border)/0.75)', borderRadius: 10, padding: '0.55rem 0.6rem' }}>
+                      <label style={{ fontSize: editLabelFs, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'block', marginBottom: '0.35rem' }}>Route Color</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={ep.color || markerColor}
+                          onChange={e => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: e.target.value } }))}
+                          style={{ width: 42, height: 42, borderRadius: 12, border: '1px solid hsl(var(--border))', padding: 0, cursor: 'pointer', background: 'transparent' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditPanelState(prev => ({ ...prev, [route.id]: { ...ep, color: '' } }))}
+                          style={{ borderRadius: 8, border: '1px solid hsl(var(--border)/0.85)', background: 'transparent', color: 'hsl(var(--foreground))', fontSize: editInputFs, padding: '0.55rem 0.8rem', cursor: 'pointer' }}
+                        >
+                          {ep.color ? 'Reset' : 'Auto'}
+                        </button>
+                      </div>
+                      <p style={{ margin: '0.35rem 0 0', fontSize: editMetaFs, color: 'hsl(var(--muted-foreground))' }}>
+                        {ep.color ? 'Custom route color will persist.' : 'Using the auto color palette for this route.'}
+                      </p>
+                    </div>
 
                     <div style={{ background: 'hsl(var(--background)/0.68)', border: '1px solid hsl(var(--border)/0.75)', borderRadius: 10, padding: '0.6rem' }}>
                       <label style={{ fontSize: editLabelFs, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'hsl(var(--muted-foreground))', display: 'block', marginBottom: '0.3rem' }}>Delivery Type (Auto)</label>
@@ -3082,7 +3103,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                       <X style={{ width: 12, height: 12 }} /> Cancel
                     </button>
                     {(() => {
-                      const hasEditChanges = ep.name !== route.name || ep.code !== route.code || ep.shift !== route.shift || ep.color !== (route.color || markerColor)
+                      const hasEditChanges = ep.name !== route.name || ep.code !== route.code || ep.shift !== route.shift || ep.color !== (route.color ?? '')
                       const hasPanelErrors = !!(editPanelErrors[route.id]?.name || editPanelErrors[route.id]?.code)
                       return (
                         <button
@@ -3091,7 +3112,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                             if (!ep.name.trim() || !ep.code.trim()) { toast.error('Name and Code required'); return }
                             if (hasPanelErrors) return
                             setHasUnsavedChanges(true)
-                            setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, name: ep.name, code: ep.code, shift: ep.shift, color: ep.color, labels: ep.labels } : r))
+                            setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, name: ep.name, code: ep.code, shift: ep.shift, color: ep.color ? ep.color : undefined, labels: ep.labels } : r))
                             setCardPanels(prev => ({ ...prev, [route.id]: { info: false, edit: false } }))
                             setEditPanelState(prev => { const n = { ...prev }; delete n[route.id]; return n })
                             setEditPanelErrors(prev => { const n = { ...prev }; delete n[route.id]; return n })
@@ -3244,7 +3265,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                               </div>
                             </div>
                           ) : (
-                          <table className="border-collapse text-[11px] whitespace-nowrap min-w-max w-full text-center [&_th]:text-center [&_td]:text-center">
+                          <table className="border-collapse text-[11px] whitespace-nowrap min-w-max w-full [&_th]:text-center [&_td]:text-center">
                             <thead className="sticky top-0 z-10 backdrop-blur-sm" style={{ background: 'hsl(var(--background)/0.92)' }}>
                               <tr>
                                 {isEditMode && (
@@ -3290,25 +3311,29 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                               }`}
                               >
                                 {isEditMode && (
-                                  <td className="px-4 h-9 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedRows.includes(point.code)}
-                                      onChange={() => toggleRowSelection(point.code)}
-                                      className="w-4 h-4 rounded border-border cursor-pointer accent-primary"
-                                    />
+                                  <td className="px-4 h-9">
+                                    <div className="flex items-center justify-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedRows.includes(point.code)}
+                                        onChange={() => toggleRowSelection(point.code)}
+                                        className="w-4 h-4 rounded border-border cursor-pointer accent-primary"
+                                      />
+                                    </div>
                                   </td>
                                 )}
                                 {effectiveColumns.filter(c => c.visible).map(col => {
                                   if (col.key === 'no') return (
-                                    <td key="no" className="px-4 h-9 text-center">
-                                      <span className="text-[9px] font-semibold tabular-nums" style={{ color: markerColor }}>
-                                        {index + 1}
-                                      </span>
+                                    <td key="no" className="px-4 h-9">
+                                      <div className="flex items-center justify-center">
+                                        <span className="text-[9px] font-semibold tabular-nums" style={{ color: markerColor }}>
+                                          {index + 1}
+                                        </span>
+                                      </div>
                                     </td>
                                   )
                                   if (col.key === 'code') return (
-                                    <td key="code" className="px-4 h-9 text-center">
+                                    <td key="code" className="px-4 h-9">
                                       {(() => {
                                         const isChanged = editingCell?.rowCode === point.code && editingCell.field === 'code' && normalizePointCode(editValue) !== point.code
                                         const canSave = isChanged && !editError
@@ -3322,7 +3347,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                                         }}
                                       >
                                         <PopoverTrigger asChild>
-                                          <button className="hover:bg-accent px-3 py-1 rounded flex items-center justify-center gap-1.5 group mx-auto text-[9px] font-semibold" onClick={() => startEdit(point.code, 'code', point.code)}>
+                                          <button className="flex items-center justify-center gap-1.5 hover:bg-accent px-3 py-1 rounded group mx-auto text-[9px] font-semibold" onClick={() => startEdit(point.code, 'code', point.code)}>
                                             <span className={`text-[9px] font-semibold ${pendingCellEdits.has(`${point.code}-code`) ? 'text-amber-600 dark:text-amber-400' : ''}`}>{point.code}</span>
                                             <Edit2 className="size-3 opacity-0 group-hover:opacity-50 transition-opacity" />
                                           </button>
@@ -3351,12 +3376,12 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                                           </div>
                                         </PopoverContent>
                                       </Popover>
-                                      ) : (<span className="text-[9px] font-semibold">{point.code}</span>)
+                                      ) : (<div className="flex items-center justify-center"><span className="text-[9px] font-semibold">{point.code}</span></div>)
                                       })()}
                                     </td>
                                   )
                                   if (col.key === 'name') return (
-                                    <td key="name" className="px-3 h-9 text-center">
+                                    <td key="name" className="px-3 h-9">
                                       {(() => {
                                         const isChanged = editingCell?.rowCode === point.code && editingCell.field === 'name' && editValue !== point.name
                                         const canSave = isChanged
@@ -3370,7 +3395,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                                         }}
                                       >
                                         <PopoverTrigger asChild>
-                                          <button className="hover:bg-accent px-3 py-1 rounded flex items-center justify-center gap-1.5 group mx-auto text-[9px] font-semibold" onClick={() => startEdit(point.code, 'name', point.name)}>
+                                          <button className="flex items-center justify-center gap-1.5 hover:bg-accent px-3 py-1 rounded group mx-auto text-[9px] font-semibold" onClick={() => startEdit(point.code, 'name', point.name)}>
                                             <span className={`text-[9px] font-semibold ${pendingCellEdits.has(`${point.code}-name`) ? 'text-amber-600 dark:text-amber-400' : ''}`}>{point.name}</span>
                                             <Edit2 className="size-3 opacity-0 group-hover:opacity-50 transition-opacity" />
                                           </button>
@@ -3395,10 +3420,10 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                                   if (col.key === 'delivery') {
                                     const isPending = pendingCellEdits.has(`${point.code}-delivery`)
                                     return (
-                                      <td key="delivery" className="px-3 h-9 text-center">
+                                      <td key="delivery" className="px-3 h-9">
                                         {isEditMode ? (
                                           <button
-                                            className="group inline-flex items-center gap-1.5 hover:opacity-70 transition-opacity mx-auto"
+                                            className="flex items-center justify-center gap-1.5 hover:opacity-70 transition-opacity mx-auto"
                                             onClick={() => openDeliveryTypeModal(point)}
                                           >
                                             <span className={`text-[9px] font-semibold ${isPending ? 'text-amber-600 dark:text-amber-400' : ''}`}>
@@ -3407,40 +3432,42 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                                             <Edit2 className="size-3 opacity-0 group-hover:opacity-50 transition-opacity" />
                                           </button>
                                         ) : (
-                                          <span className="text-[9px] font-semibold">{getDeliveryLabel(point.delivery)}</span>
+                                          <div className="flex items-center justify-center"><span className="text-[9px] font-semibold">{getDeliveryLabel(point.delivery)}</span></div>
                                         )}
                                       </td>
                                     )
                                   }
                                   if (col.key === 'km') return (
-                                    <td key="km" className="px-3 h-9 text-center">
-                                      <TooltipProvider delayDuration={100}>
-                                        <Tooltip
-                                          open={openKmTooltip === point.code}
-                                          onOpenChange={(open) => setOpenKmTooltip(open ? point.code : null)}
-                                        >
-                                          <TooltipTrigger
-                                            type="button"
-                                            className="text-[9px] font-semibold cursor-help tabular-nums"
-                                            onClick={() => setOpenKmTooltip(prev => prev === point.code ? null : point.code)}
+                                    <td key="km" className="px-3 h-9">
+                                      <div className="flex items-center justify-center">
+                                        <TooltipProvider delayDuration={100}>
+                                          <Tooltip
+                                            open={openKmTooltip === point.code}
+                                            onOpenChange={(open) => setOpenKmTooltip(open ? point.code : null)}
                                           >
-                                            {hasCoords && distInfo ? formatKm(distInfo.display) : ''}
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top" className="max-w-[220px] text-center text-[11px] z-[9999]">
-                                            {segmentLabel}
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
+                                            <TooltipTrigger
+                                              type="button"
+                                              className="text-[9px] font-semibold cursor-help tabular-nums"
+                                              onClick={() => setOpenKmTooltip(prev => prev === point.code ? null : point.code)}
+                                            >
+                                              {hasCoords && distInfo ? formatKm(distInfo.display) : ''}
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-[220px] text-center text-[11px] z-[9999]">
+                                              {segmentLabel}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      </div>
                                     </td>
                                   )
                                   if (col.key === 'action') return null
                                   return null
                                 })}
                                 {isActionColumnVisible && (
-                                  <td className="px-3 h-9 text-center">
-                                    <div className="inline-flex items-center gap-1 justify-center">
+                                  <td className="px-3 h-9">
+                                    <div className="flex items-center justify-center gap-1">
                                       <button
-                                        className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95 ${
+                                        className={`flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 hover:scale-110 active:scale-95 ${
                                           isActive
                                             ? 'text-emerald-600 hover:bg-emerald-500/10'
                                             : 'text-rose-500 hover:bg-rose-500/10'
@@ -3451,7 +3478,7 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                                       </button>
                                       {isPlaygroundMode && (
                                         <button
-                                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150"
+                                          className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150"
                                           title="Remove location"
                                           onClick={() => {
                                             const updatedRoutes = routes.map(r =>
@@ -3822,83 +3849,120 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                 <Dialog open={deliveryModalOpen && currentRouteId === route.id} onOpenChange={(open) => {
                   if (!open) closeDeliveryTypeModal()
                 }}>
-                  <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
-                    <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
-                      <DialogTitle className="text-base font-bold">Delivery Type</DialogTitle>
-                      <DialogDescription className="text-xs">
-                        {deliveryModalCode && (() => {
-                          const pt = deliveryPoints.find(p => p.code === deliveryModalCode)
-                          if (!pt) return ''
-                          const selectedDelivery = deliveryModalDraft ?? pt.delivery
-                          const active = isDeliveryActive(selectedDelivery)
-                          return (
-                            <span className="flex items-center gap-2">
-                              <span>{pt.code} — {pt.name}</span>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                active ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${ active ? 'bg-green-500' : 'bg-red-500' }`} />
-                                {active ? 'ON' : 'OFF'}
-                              </span>
-                            </span>
-                          )
-                        })()}
-                      </DialogDescription>
-                    </DialogHeader>
-
+                  <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden rounded-xl border border-border/80 shadow-lg">
                     {deliveryModalCode && (() => {
                       const pt = deliveryPoints.find(p => p.code === deliveryModalCode)
                       if (!pt) return null
                       const selectedDelivery = deliveryModalDraft ?? pt.delivery
+                      const active = isDeliveryActive(selectedDelivery)
                       const hasPendingChange = selectedDelivery !== pt.delivery
-                      // Build item list: known items + any unknown value already set
-                      const extraVal = DELIVERY_MAP.has(selectedDelivery) ? [] : [{ value: selectedDelivery, label: selectedDelivery, description: '(existing)', bg: 'bg-muted', text: 'text-muted-foreground', dot: '#6b7280' }]
-                      const items = [...DELIVERY_ITEMS, ...extraVal]
+
                       return (
                         <>
-                          <div className="py-1.5 px-1.5">
-                            {items.map(item => {
+                          {/* Header with gradient background */}
+                          <div className="relative bg-gradient-to-r from-primary/8 to-primary/5 px-5 pt-5 pb-4 border-b border-border/60">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <h2 className="text-base font-bold text-foreground mb-1">Select Delivery Type</h2>
+                                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                  <span className="font-mono font-semibold text-foreground">{pt.code}</span>
+                                  <span>•</span>
+                                  <span className="truncate">{pt.name}</span>
+                                </p>
+                              </div>
+                              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
+                                active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-orange-500/15 text-orange-700 dark:text-orange-400'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                                {active ? 'ACTIVE' : 'INACTIVE'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Content with delivery options */}
+                          <div className="flex flex-col max-h-[60vh] overflow-y-auto py-3 px-3">
+                            {DELIVERY_ITEMS.map(item => {
                               const isSelected = selectedDelivery === item.value
+                              const itemActive = isDeliveryActive(item.value)
                               return (
                                 <button
                                   key={item.value}
                                   onClick={() => setDeliveryModalDraft(item.value)}
-                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                                    isSelected ? 'bg-primary/10 dark:bg-primary/20' : 'hover:bg-muted/70'
+                                  className={`w-full text-left px-4 py-3.5 rounded-lg transition-all mb-2 flex items-center justify-between gap-3 ${
+                                    isSelected
+                                      ? 'bg-primary/15 dark:bg-primary/20 border border-primary/40 shadow-sm'
+                                      : 'bg-card hover:bg-muted/60 border border-border/50'
                                   }`}
                                 >
-                                  <span className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: item.dot }} />
-                                  <span className="flex-1 min-w-0">
-                                    <span className="block text-sm font-bold text-foreground">{item.label}</span>
-                                    <span className="block text-[11px] text-muted-foreground leading-tight">{item.description}</span>
-                                  </span>
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                                    isDeliveryActive(item.value) ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'
-                                  }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${isDeliveryActive(item.value) ? 'bg-green-500' : 'bg-red-500'}`} />
-                                    {isDeliveryActive(item.value) ? 'ON' : 'OFF'}
-                                  </span>
-                                  {isSelected && <Check className="size-3.5 shrink-0 text-primary" />}
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div
+                                      className="w-3.5 h-3.5 rounded-full shrink-0 ring-2 ring-offset-1 transition-all"
+                                      style={{
+                                        backgroundColor: item.dot,
+                                      }}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold text-foreground">{item.label}</p>
+                                      <p className="text-xs text-muted-foreground leading-tight">{item.description}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shrink-0 whitespace-nowrap ${
+                                      itemActive ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-orange-500/15 text-orange-700 dark:text-orange-400'
+                                    }`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${itemActive ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                                      {itemActive ? 'ON' : 'OFF'}
+                                    </span>
+                                    {isSelected && (
+                                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                        <Check className="w-3 h-3 text-primary-foreground" />
+                                      </div>
+                                    )}
+                                  </div>
                                 </button>
                               )
                             })}
+
+                            {/* Show extra value if exists */}
+                            {!DELIVERY_MAP.has(selectedDelivery) && (
+                              <button
+                                onClick={() => setDeliveryModalDraft(selectedDelivery)}
+                                className={`w-full text-left px-4 py-3.5 rounded-lg transition-all border border-border/30 flex items-center justify-between gap-3 ${
+                                  selectedDelivery === deliveryModalDraft
+                                    ? 'bg-muted/40'
+                                    : 'bg-muted/20 hover:bg-muted/30'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 flex-1">
+                                  <div className="w-3.5 h-3.5 rounded-full shrink-0 bg-muted-foreground/40" />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-bold text-foreground">{selectedDelivery}</p>
+                                    <p className="text-xs text-muted-foreground">(custom value)</p>
+                                  </div>
+                                </div>
+                                <span className="bg-muted/60 text-muted-foreground text-[10px] px-2 py-1 rounded-full">
+                                  OTHER
+                                </span>
+                              </button>
+                            )}
                           </div>
 
-                          <div className="px-5 pb-4 pt-2 flex justify-end gap-4 border-t border-border">
+                          {/* Footer with action buttons */}
+                          <div className="flex gap-3 px-5 py-4 border-t border-border/60 bg-card/50">
                             <button
                               type="button"
                               onClick={closeDeliveryTypeModal}
-                              className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
+                              className="flex-1 text-sm font-semibold px-4 py-2.5 rounded-lg border border-border/60 bg-card hover:bg-muted/40 text-foreground transition-colors"
                             >
-                              Close
+                              Cancel
                             </button>
                             {hasPendingChange && (
                               <button
                                 type="button"
                                 onClick={applyDeliveryTypeChange}
-                                className="text-sm font-semibold text-green-600 transition-colors hover:text-green-700"
+                                className="flex-1 text-sm font-bold px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
                               >
-                                Apply
+                                Change
                               </button>
                             )}
                           </div>
@@ -4064,58 +4128,80 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
       {/* Playground: Add Location dialog (multi-select from existing Location records) */}
       {isPlaygroundMode && (
         <Dialog open={pgAddLocOpen} onOpenChange={(open) => { setPgAddLocOpen(open); if (!open) { setPgAddLocSearch(""); setPgAddLocSelected(new Set()) } }}>
-          <DialogContent className="w-[92vw] max-w-lg overflow-hidden flex flex-col gap-0 p-0 rounded-2xl" style={{ maxHeight: '80vh' }}>
-            <div className="px-5 pt-5 pb-4 border-b border-border shrink-0">
-              <DialogTitle className="text-sm font-bold leading-tight">Add Location</DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">
-                Select one or more locations from existing Location records.
+          <DialogContent className="w-[92vw] max-w-lg overflow-hidden flex flex-col gap-0 p-0 rounded-2xl" style={{ maxHeight: '80vh' }} onOpenAutoFocus={e => e.preventDefault()}>
+            <div className="px-6 pt-5 pb-4 border-b border-border shrink-0 bg-card/50">
+              <DialogTitle className="text-base font-bold leading-tight">Add Location</DialogTitle>
+              <DialogDescription className="text-xs leading-relaxed mt-1 text-muted-foreground">
+                Select one or more locations from existing records
                 {pgAddLocAvailable.length > 0 && (
-                  <span className="ml-1 text-muted-foreground">({pgAddLocAvailable.length} available)</span>
+                  <span className="ml-1.5 font-medium text-primary">({pgAddLocAvailable.length} available)</span>
                 )}
               </DialogDescription>
             </div>
 
-            <div className="shrink-0 px-4 pt-3 pb-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+            <div className="shrink-0 px-5 pt-4 pb-3 border-b border-border/50">
+              <div className="relative mb-3">
+                <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/40 pointer-events-none" />
                 <Input
                   value={pgAddLocSearch}
                   onChange={(e) => setPgAddLocSearch(e.target.value)}
-                  placeholder="Search code or name..."
-                  className="h-8 pl-8 pr-8 text-[11px]"
-                  autoFocus
+                  placeholder="Search location code or name..."
+                  className="h-9 pl-10 pr-9 text-sm bg-background/80 border-border/60 focus:border-primary/60"
+                  aria-label="Search locations"
                 />
                 {pgAddLocSearch && (
-                  <button type="button" onClick={() => setPgAddLocSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground">
-                    <X className="size-3.5" />
+                  <button 
+                    type="button" 
+                    onClick={() => setPgAddLocSearch("")} 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 rounded-md transition-colors"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <X className="size-4" />
                   </button>
                 )}
               </div>
               {pgAddLocSelected.size > 0 && (
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[11px] text-primary font-medium">{pgAddLocSelected.size} selected</span>
-                  <button type="button" onClick={() => setPgAddLocSelected(new Set())} className="text-[11px] text-muted-foreground hover:text-foreground">
-                    Clear selection
+                <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                  <span className="text-xs font-semibold text-primary">{pgAddLocSelected.size} location{pgAddLocSelected.size !== 1 ? 's' : ''} selected</span>
+                  <button 
+                    type="button" 
+                    onClick={() => setPgAddLocSelected(new Set())} 
+                    className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                  >
+                    Clear all
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-2">
+            <div className="flex-1 overflow-y-auto min-h-0 px-5 py-3">
               {pgAddLocAvailable.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">All locations already added, or no location records found.</div>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-muted/40 flex items-center justify-center mb-3">
+                    <AlertCircle className="size-5 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">No locations available</p>
+                  <p className="text-xs text-muted-foreground mt-1">All locations have been added or no records found.</p>
+                </div>
               ) : (() => {
                 const filtered = pgAddLocAvailable.filter(loc => {
                   const q = pgAddLocSearch.toLowerCase()
                   return !q || loc.code.toLowerCase().includes(q) || loc.name.toLowerCase().includes(q) || loc.routeName.toLowerCase().includes(q)
                 })
                 if (filtered.length === 0) return (
-                  <div className="py-8 text-center text-sm text-muted-foreground">No matching locations.</div>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-12 h-12 rounded-full bg-muted/40 flex items-center justify-center mb-3">
+                      <Search className="size-5 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">No results found</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try searching with a different code or name.</p>
+                  </div>
                 )
                 const allFilteredSelected = filtered.every(loc => pgAddLocSelected.has(loc.code))
                 return (
                   <>
-                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm py-1.5 flex items-center gap-2 border-b border-border/50 mb-1">
+                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 flex items-center gap-3 border-b border-border/50 mb-2 -mx-5 px-5">
                       <input
                         type="checkbox"
                         id="pg-select-all"
@@ -4135,51 +4221,65 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                             })
                           }
                         }}
-                        className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+                        className="w-4 h-4 rounded cursor-pointer accent-primary"
+                        aria-label="Select all locations"
                       />
-                      <label htmlFor="pg-select-all" className="text-[11px] font-medium text-muted-foreground cursor-pointer select-none">
+                      <label htmlFor="pg-select-all" className="text-xs font-medium text-muted-foreground cursor-pointer select-none flex-1">
                         Select all ({filtered.length})
                       </label>
                     </div>
-                    {filtered.map(loc => (
-                      <label
-                        key={loc.code}
-                        className={`flex items-start gap-3 rounded-lg px-2 py-2.5 cursor-pointer transition-colors ${
-                          pgAddLocSelected.has(loc.code) ? 'bg-primary/8 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={pgAddLocSelected.has(loc.code)}
-                          onChange={() => {
-                            setPgAddLocSelected(prev => {
-                              const next = new Set(prev)
-                              if (next.has(loc.code)) next.delete(loc.code)
-                              else next.add(loc.code)
-                              return next
-                            })
-                          }}
-                          className="mt-0.5 w-4 h-4 rounded border-border accent-primary cursor-pointer shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[11px] font-bold tabular-nums">{loc.code}</span>
-                            <span className="text-[11px] font-medium truncate">{loc.name}</span>
+                    <div className="space-y-2">
+                      {filtered.map(loc => (
+                        <label
+                          key={loc.code}
+                          className={`flex items-start gap-3.5 rounded-lg px-3.5 py-3 cursor-pointer transition-all border ${
+                            pgAddLocSelected.has(loc.code) 
+                              ? 'bg-primary/8 border-primary/30 shadow-sm' 
+                              : 'hover:bg-muted/40 border-transparent hover:border-border/30'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={pgAddLocSelected.has(loc.code)}
+                            onChange={() => {
+                              setPgAddLocSelected(prev => {
+                                const next = new Set(prev)
+                                if (next.has(loc.code)) next.delete(loc.code)
+                                else next.add(loc.code)
+                                return next
+                              })
+                            }}
+                            className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-primary shrink-0"
+                            aria-label={`Select ${loc.code}`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2.5 mb-1">
+                              <span className="text-xs font-bold tabular-nums bg-muted/60 px-2 py-0.5 rounded text-primary">{loc.code}</span>
+                              <span className="text-sm font-medium truncate text-foreground">{loc.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-0.5 rounded">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/40"></span>
+                                {loc.routeName}
+                              </span>
+                              <span className="text-xs text-muted-foreground/80">{loc.delivery}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-muted-foreground truncate">{loc.routeName}</span>
-                            <span className="text-[10px] text-muted-foreground">· {loc.delivery}</span>
-                          </div>
-                        </div>
-                      </label>
-                    ))}
+                        </label>
+                      ))}
+                    </div>
                   </>
                 )
               })()}
             </div>
 
-            <div className="shrink-0 border-t border-border px-5 py-3 flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setPgAddLocOpen(false); setPgAddLocSearch(""); setPgAddLocSelected(new Set()) }}>
+            <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-2.5 bg-card/50">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => { setPgAddLocOpen(false); setPgAddLocSearch(""); setPgAddLocSelected(new Set()) }}
+                className="px-4"
+              >
                 Cancel
               </Button>
               <Button
@@ -4216,8 +4316,9 @@ export function RouteList({ variant = 'route-list' }: RouteListProps) {
                   setPgAddLocSearch("")
                   setPgAddLocSelected(new Set())
                 }}
+                className="px-4"
               >
-                Add {pgAddLocSelected.size > 0 ? `(${pgAddLocSelected.size})` : ''}
+                Add {pgAddLocSelected.size > 0 && `(${pgAddLocSelected.size})`}
               </Button>
             </div>
           </DialogContent>
