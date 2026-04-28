@@ -1,0 +1,1 @@
+import{j as t}from"./vendor-radix-BBp9sjG3.js";import{RouteList as o}from"./RouteList-bl6YNrum.js";import"./vendor-icons-B_SoAoo4.js";import"./main-CjE5H-UI.js";import"./vendor-map-BBladOsd.js";import"./route-colors-JNWfJzHW.js";function n(){return t.jsx(o,{variant:"playground"})}export{n as CustomRoutePage};
